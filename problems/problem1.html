@@ -20,8 +20,15 @@
 </head>
 <body>
 <script type="module">
-    import {ThreeEngine} from "../js/utils/utils_three.js";
-    import {B1Z1Robot, XArm7Robot} from "../js/utils/utils_robot.js";
+    import {
+        ThreeEngine,
+        get_default_lil_gui,
+        refresh_displays
+    } from "../js/utils/utils_three.js";
+    import {
+        B1Z1Robot,
+        XArm7Robot,
+    } from "../js/utils/utils_robot.js";
     import {
         add_matrix_matrix,
         frobenius_norm_matrix, identity_matrix,
@@ -128,6 +135,7 @@
 
                 curr_pose = mul_matrix_matrix(curr_pose, T_v);
                 robot.set_link_mesh_pose_from_SE3_matrix(engine, link_idx, curr_pose);
+                robot.set_link_mesh_pose_from_SE3_matrix(engine, link_idx, curr_pose)
 
                 output_poses[link_idx] = curr_pose;
             });
@@ -135,10 +143,69 @@
         return output_poses;
     }
 
+    let settings = {
+        dof0: 0,
+        dof1: 0,
+        dof2: 0,
+        dof3: 0,
+        dof4: 0,
+        dof5: 0,
+        dof6: 0,
+        dof7: 0,
+        display_mesh: true,
+        display_wireframe: false,
+        display_mesh_only_with_frame: false
+    };
+
+    let actions = {
+        reset_dofs: function() {
+            settings.dof0 = 0;
+            settings.dof1 = 0;
+            settings.dof2 = 0;
+            settings.dof3 = 0;
+            settings.dof4 = 0;
+            settings.dof5 = 0;
+            settings.dof6 = 0;
+            settings.dof7 = 0;
+            refresh_displays(gui);
+        }
+    };
+
     let engine = ThreeEngine.new_default_3d();
+    let gui = get_default_lil_gui();
+
+    let controls = gui.addFolder('Controls');
+    controls.add(settings, "display_mesh").name("Display Mesh");
+    controls.add(settings, "display_wireframe").name("Display Wireframe");
+    controls.add(settings, "display_mesh_only_with_frame").name("Display Mesh only with Frame");
+
+    let dofs = gui.addFolder('DOFs');
+    let actions_folder = gui.addFolder('Actions');
+    actions_folder.add(actions, 'reset_dofs').name('Reset');
 
     // if you want to use the XArm7 robot:
     let robot = new XArm7Robot();
+
+    // add sliders with correct degree of freedom
+    let joints = robot.joints;
+    let links = robot.links;
+    let kh = robot.kinematic_hierarchy;
+    kh.forEach(layer => {
+        layer.forEach(link_idx => {
+            if(link_idx === 0) {
+                return;
+            }
+            let curr_link = links[link_idx];
+            let parent_joint_idx = curr_link.parent_joint_idx;
+            let curr_joint = joints[parent_joint_idx];
+            let joint_type = curr_joint.joint_type_string;
+            if(joint_type === 'revolute' || joint_type === 'prismatic') {
+                let name = "dof" + curr_joint.dof_idx.toString();
+                dofs.add(settings, name, curr_joint.lower_bound, curr_joint.upper_bound).name(name);
+            }
+        });
+    });
+
 
     // or, if you want to use the B1Z1 robot, comment the previous robot and uncomment this line:
     // let robot = new B1Z1Robot();
@@ -147,8 +214,25 @@
     robot.spawn_robot(engine);
 
     engine.animation_loop( ()  => {
-        let state = [0, 3, 2.0944, 0, 0, 0, 0, 0];
+        robot.set_mesh_visibility(engine, settings.display_mesh);
+        robot.set_wireframe_visibility(engine, settings.display_wireframe);
+        if(settings.display_mesh_only_with_frame) {
+            robot.set_mesh_visibility(engine, false);
+            robot.set_wireframe_visibility(engine, false);
+        }
+
+        let state = [
+            settings.dof0,
+            settings.dof1,
+            settings.dof2,
+            settings.dof3,
+            settings.dof4,
+            settings.dof5,
+            settings.dof6,
+            settings.dof7
+        ];
         forward_kinematics(engine, robot, state);
+        refresh_displays(gui);
     });
 
 </script>
