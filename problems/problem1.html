@@ -152,6 +152,8 @@
                 curr_pose = mul_matrix_matrix(curr_pose, T_v);
                 if(coord_displays[link_idx]) {
                     draw_SE3_pose(engine, curr_pose);
+                    robot.set_link_mesh_visibility(engine, link_idx, settings.display_mesh);
+                    robot.set_link_wireframe_visibility(engine, link_idx, settings.display_wireframe);
                 }
                 robot.set_link_mesh_pose_from_SE3_matrix(engine, link_idx, curr_pose);
                 robot.set_link_mesh_pose_from_SE3_matrix(engine, link_idx, curr_pose)
@@ -259,10 +261,9 @@
     let engine = ThreeEngine.new_default_3d();
     let gui = get_default_lil_gui();
 
-    let controls = gui.addFolder('Controls');
-    controls.add(settings, "display_mesh").name("Display Mesh");
-    controls.add(settings, "display_wireframe").name("Display Wireframe");
-    controls.add(settings, "display_mesh_only_with_frame").name("Display Mesh only with Frame");
+    gui.add(settings, "display_mesh").name("Display Mesh");
+    gui.add(settings, "display_wireframe").name("Display Wireframe");
+    gui.add(settings, "display_mesh_only_with_frame").name("Display Mesh only with Frame");
 
     let dofs = gui.addFolder('DOFs');
     let actions_folder = gui.addFolder('Actions');
